@@ -4,93 +4,90 @@ import streamlit as st
 import plotly.graph_objects as go
 
 # Configuración de la página web
-st.set_page_config(page_title="Simulador de Agudeza Visual", layout="centered")
+st.set_page_config(page_title="Simulador de Consumo de Energía", layout="centered")
 
-# Título y encabezado médico
-st.title("👁️ Simulador Clínico Interactiva: Concentración vs. Visión")
-st.write("Mueve la barra deslizante de abajo para simular una concentración de conos personalizada y evaluar la agudeza visual resultante.")
+# Título de la app
+st.title("📱 Simulador Interactiva: Cantidad de Apps vs. Duración de Batería")
+st.write("Mueve la barra deslizante para cambiar la cantidad de aplicaciones abiertas y observa cómo se agota el tiempo de vida de la batería.")
 
-# 1. Datos reales de referencia anatómica
-x_puntos = np.array([5000, 15000, 40000, 80000, 150000])
-y_puntos = np.array([5, 15, 40, 70, 100])
-zonas = ["Periferia Lejana", "Periferia Media", "Mácula Externa", "Fóvea (Borde)", "Fóvea Central"]
+# 1. Datos reales de la simulación (CANTIDAD)
+x_puntos = np.array()
+y_puntos = np.array()
+estados = ["Reposo Total", "Uso Ligero", "Uso Moderado", "Uso Intenso", "Colapso del Sistema"]
 
-# Crear el modelo matemático (interpolación) para predecir cualquier valor intermedio
-modelo_vision = interp1d(x_puntos, y_puntos, kind='cubic', bounds_error=False, fill_value="extrapolate")
+# Modelo matemático de decaimiento
+modelo_bateria = interp1d(x_puntos, y_puntos, kind='cubic', bounds_error=False, fill_value="extrapolate")
 
-# Generar la línea continua suave de fondo
+# Generar línea suave de fondo
 x_suave = np.linspace(x_puntos.min(), x_puntos.max(), 300)
-y_suave = np.clip(modelo_vision(x_suave), 0, 100) # Evitamos que matemáticamente supere el 100%
+y_suave = np.clip(modelo_bateria(x_suave), 0.5, 24.0)
 
-# --- ELEMENTO INTERACTIVO: BARRA DESLIZANTE (SLIDER) ---
-st.subheader("🎛️ Panel de Simulación Clínica")
+# --- PANEL INTERACTIVO ---
+st.subheader("🎛️ Configuración del Celular")
 
-# Creamos el slider en Streamlit
-concentracion_usuario = st.slider(
-    label="Selecciona la Concentración de Conos del Paciente (células / mm²):",
-    min_value=5000,
-    max_value=150000,
-    value=50000, # Valor con el que inicia la página
-    step=1000,
-    format="%d"
+# Slider para seleccionar la cantidad de apps
+cantidad_apps = st.slider(
+    label="Selecciona la cantidad de aplicaciones abiertas simultáneamente:",
+    min_value=0,
+    max_value=15,
+    value=4, # Inicia en 4 apps
+    step=1
 )
 
-# Calcular la agudeza visual en tiempo real usando el modelo matemático
-# Usamos np.clip para que por efectos de la curva no baje de 0 ni suba de 100
-agudeza_calculada = float(np.clip(modelo_vision(concentracion_usuario), 0, 100))
+# Calcular horas restantes en tiempo real
+horas_calculadas = float(np.clip(modelo_bateria(cantidad_apps), 0.5, 24.0))
 
-# Mostrar los resultados clínicos en tarjetas llamativas (Métricas)
+# Mostrar métricas en pantalla
 col1, col2 = st.columns(2)
 with col1:
-    st.metric(label="Concentración Seleccionada", value=f"{concentracion_usuario:,} cél/mm²")
+    st.metric(label="Cantidad de Apps Abiertas", value=f"{cantidad_apps} apps")
 with col2:
-    st.metric(label="Agudeza Visual Estimada", value=f"{agudeza_calculada:.1f} %")
+    st.metric(label="Duración Estimada", value=f"{horas_calculadas:.1f} horas")
 
-# --- CONSTRUCCIÓN DEL GRÁFICO INTERACTIVO ---
+# --- GRÁFICO INTERACTIVO ---
 fig = go.Figure()
 
-# 1. Línea de tendencia fisiológica de fondo
+# Linea de tendencia
 fig.add_trace(go.Scatter(
     x=x_suave, y=y_suave,
     mode='lines',
-    name='Curva Fisiológica',
-    line=dict(color='#0077b6', width=2, dash='dash'),
+    name='Curva de Desgaste',
+    line=dict(color='#d90429', width=2, dash='dash'),
     hoverinfo='skip'
 ))
 
-# 2. Puntos anatómicos reales de referencia
+# Puntos de referencia
 fig.add_trace(go.Scatter(
     x=x_puntos, y=y_puntos,
     mode='markers',
     name='Puntos de Referencia',
-    marker=dict(color='#4a4a4a', size=10, symbol='circle-open'),
-    text=zonas,
-    hovertemplate="<b>%{text}</b><br>Concentración: %{x:,} cél/mm²<br>Agudeza: %{y}%<extra></extra>"
+    marker=dict(color='#2b2d42', size=10, symbol='circle-open'),
+    text=estados,
+    hovertemplate="<b>%{text}</b><br>Cantidad de Apps: %{x}<br>Duración: %{y} hrs<extra></extra>"
 ))
 
-# 3. EL PUNTO DINÁMICO (El que se mueve con la barra deslizante)
+# Punto del usuario en tiempo real
 fig.add_trace(go.Scatter(
-    x=[concentracion_usuario],
-    y=[agudeza_calculada],
+    x=[cantidad_apps],
+    y=[horas_calculadas],
     mode='markers+text',
-    name='Paciente Simulado',
-    marker=dict(color='#e63946', size=16, symbol='diamond'),
-    text=[f"Tu Paciente ({agudeza_calculada:.1f}%)"],
-    textposition="top left",
-    hovertemplate="<b>Paciente Simulado</b><br>Concentración: %{x:,} cél/mm²<br>Agudeza: %{y:.1f}%<extra></extra>"
+    name='Tu Teléfono',
+    marker=dict(color='#ef233c', size=16, symbol='square'),
+    text=[f"{horas_calculadas:.1f} hrs"],
+    textposition="top right",
+    hovertemplate="<b>Estado Actual</b><br>Apps Abiertas: %{x}<br>Duración: %{y:.1f} hrs<extra></extra>"
 ))
 
-# Configuración estética del gráfico
+# Formato estético
 fig.update_layout(
-    xaxis_title="Variable Independiente (X): Concentración de Conos (células / mm²)",
-    yaxis_title="Variable Dependiente (Y): Agudeza Visual (%)",
-    xaxis=dict(range=[0, 160000], tickformat=","),
-    yaxis=dict(range=[0, 110]),
+    xaxis_title="Variable Independiente (X): Cantidad de Aplicaciones Abiertas",
+    yaxis_title="Variable Dependiente (Y): Duración de la Batería (Horas)",
+    xaxis=dict(range=[-0.5, 15.5], tickmode='linear', tick0=0, dtick=1),
+    yaxis=dict(range=[-1, 26]),
     hovermode="closest",
     template="plotly_white",
     showlegend=True,
-    legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+    legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
 )
 
-# Enviar el gráfico dinámico a Streamlit
 st.plotly_chart(fig, use_container_width=True)
