@@ -11,8 +11,8 @@ st.title("📱 Simulador Interactiva: Cantidad de Apps vs. Duración de Batería
 st.write("Mueve la barra deslizante para cambiar la cantidad de aplicaciones abiertas y observa cómo se agota el tiempo de vida de la batería.")
 
 # 1. Datos reales de la simulación (CANTIDAD)
-x_puntos = np.array()
-y_puntos = np.array()
+x_puntos = np.array([0, 2, 5, 10, 15])
+y_puntos = np.array([24.0, 12.0, 5.5, 2.1, 0.8])
 estados = ["Reposo Total", "Uso Ligero", "Uso Moderado", "Uso Intenso", "Colapso del Sistema"]
 
 # Modelo matemático de decaimiento
